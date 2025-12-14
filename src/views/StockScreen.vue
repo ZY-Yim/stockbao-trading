@@ -49,7 +49,12 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="stockList" v-loading="loading">
+      <el-table 
+        :data="stockList" 
+        v-loading="loading"
+        height="400"
+        style="width: 100%"
+      >
         <el-table-column prop="code" label="股票代码" width="120" />
         <el-table-column prop="name" label="股票名称" width="120" />
         <el-table-column prop="industry" label="行业" />
@@ -69,6 +74,58 @@
           </template>
         </el-table-column>
       </el-table>
+        </el-card>
+
+        <!-- 新增：关键字搜索 -->
+        <el-card style="margin-top: 20px;">
+          <template #header>
+            <div class="card-header">
+              <span>关键字搜索</span>
+            </div>
+          </template>
+          
+          <el-form inline>
+            <el-form-item label="关键字">
+              <el-input 
+                v-model="keyword" 
+                placeholder="请输入股票代码或名称"
+                clearable
+                style="width: 300px;"
+                @keyup.enter="handleKeywordSearch"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleKeywordSearch" :loading="keywordLoading">
+                搜索
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-table 
+            :data="keywordStockList" 
+            v-loading="keywordLoading"
+            height="400"
+            style="width: 100%"
+          >
+            <el-table-column prop="code" label="股票代码" width="120" />
+            <el-table-column prop="name" label="股票名称" width="120" />
+            <el-table-column prop="industry" label="行业" />
+            <el-table-column prop="market_value" label="市值(亿元)" />
+            <el-table-column prop="turnover_rate" label="换手率(%)" />
+            <el-table-column prop="pe_ratio" label="市盈率" />
+            <el-table-column fixed="right" label="操作" width="120">
+              <template #default="{ row }">
+                <el-button 
+                  type="primary" 
+                  link 
+                  @click="handleFollow(row)"
+                  :loading="followLoading"
+                >
+                  关注
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </el-card>
       </el-col>
       
@@ -155,8 +212,11 @@ const loading = ref(false)
 const followLoading = ref(false)
 const industriesLoading = ref(false)
 const quickScreenLoading = ref(false)
+const keywordLoading = ref(false)
 const stockList = ref([])
+const keywordStockList = ref([])
 const industries = ref([])
+const keyword = ref('')
 
 const filterForm = reactive({
   industry: '',
@@ -282,6 +342,28 @@ const handleQuickFollow = async (stock) => {
     // 错误已经被拦截器处理
   } finally {
     followLoading.value = false
+  }
+}
+
+const handleKeywordSearch = async () => {
+  if (!keyword.value.trim()) {
+    ElMessage.warning('请输入搜索关键字')
+    return
+  }
+  
+  keywordLoading.value = true
+  try {
+    const { results } = await request.get('/stocks/query/', {
+      params: { keyword: keyword.value }
+    })
+    keywordStockList.value = results || []
+    if (results && results.length === 0) {
+      ElMessage.info('未找到相关股票')
+    }
+  } catch (error) {
+    // 错误已经被拦截器处理
+  } finally {
+    keywordLoading.value = false
   }
 }
 
