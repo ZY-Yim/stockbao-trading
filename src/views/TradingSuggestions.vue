@@ -55,12 +55,19 @@ const getSuggestionType = (suggestion) => {
   return types[suggestion] || 'info'
 }
 
-const fetchSuggestions = async () => {
+const fetchSuggestions = async (opts = {}) => {
   loading.value = true
   try {
-    const data = await request.get(`/stocks/all_suggestions/?page_size=${page_size.value}&page=${page.value}`)
+    // build query params using axios params (safer than manual string concatenation)
+    const params = {
+      page_size: page_size.value,
+      page: page.value
+    }
+    if (opts.refresh) params.refresh = 1
+
+    const data = await request.get('/stocks/all_suggestions/', { params })
     suggestions.value = data
-    total_page.value = data[0].total_page
+    total_page.value = data[0]?.total_page ?? 1
   } catch (error) {
     // 错误已经被拦截器处理
   } finally {
@@ -69,7 +76,8 @@ const fetchSuggestions = async () => {
 }
 
 const refreshData = () => {
-  fetchSuggestions()
+  // trigger backend to refresh suggestions
+  fetchSuggestions({ refresh: 1 })
 }
 
 const lastPage = () => {
